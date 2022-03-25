@@ -111,13 +111,16 @@ func main() {
 		args.q = true
 	}
 
-	fmt.Printf("ignore files with the regex patterh: %s\n", args.ignore)
-	ignoreRegex, err := regexp.Compile(args.ignore)
-	if err != nil {
-		fmt.Printf("invalid ignore pattern '%s' => %s", args.ignore, err)
-		os.Exit(1)
+	if len(args.ignore) > 0 {
+		fmt.Printf("ignore files with the regex patterh: %s\n", args.ignore)
+
+		ignoreRegex, err := regexp.Compile(args.ignore)
+		if err != nil {
+			fmt.Printf("invalid ignore pattern '%s' => %s", args.ignore, err)
+			os.Exit(1)
+		}
+		args.ignoreRegex = ignoreRegex
 	}
-	args.ignoreRegex = ignoreRegex
 
 	for _, fn := range flag.Args() {
 		processArg(fn)
