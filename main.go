@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"time"
 )
 
 // GitVersion is set by the Makefile and contains the version string.
@@ -22,6 +24,7 @@ var stats struct {
 	outdated           int
 	newfile            int
 	ok                 int
+	ignored            int
 }
 
 var args struct {
@@ -30,6 +33,9 @@ var args struct {
 	q         bool
 	qq        bool
 	dryrun    bool
+	stats     bool
+	ignore    string
+	ignoreRegex *regexp.Regexp
 }
 
 // walkFn is used when `cshatag` is called with the `--recursive` option. It is the function called
@@ -72,6 +78,8 @@ func processArg(fn string) {
 }
 
 func main() {
+	start := time.Now()
+
 	const myname = "cshatag"
 
 	if GitVersion == "" {
@@ -84,6 +92,9 @@ func main() {
 	flag.BoolVar(&args.recursive, "recursive", false, "Recursively descend into subdirectories. "+
 		"Symbolic links are not followed.")
 	flag.BoolVar(&args.dryrun, "dry-run", false, "don't make any changes")
+	flag.BoolVar(&args.stats, "stats", false, "report statistics at the end")
+	flag.StringVar(&args.ignore, "ignore", "", "Ignore regex pattern.  All files where the fully qualified file path match the ignore expression will be ignored.")
+
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "%s %s\n", myname, GitVersion)
 		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS] FILE [FILE2 ...]\n", myname)
@@ -100,8 +111,39 @@ func main() {
 		args.q = true
 	}
 
+	fmt.Printf("ignore files with the regex patterh: %s\n", args.ignore)
+	ignoreRegex, err := regexp.Compile(args.ignore)
+	if err != nil {
+		fmt.Printf("invalid ignore pattern '%s' => %s", args.ignore, err)
+		os.Exit(1)
+	}
+	args.ignoreRegex = ignoreRegex
+
 	for _, fn := range flag.Args() {
 		processArg(fn)
+	}
+
+	duration := time.Now().Sub(start)
+
+	if args.stats {
+		fmt.Println("")
+		fmt.Println("")
+		fmt.Printf("%s stats:\n", myname)
+		fmt.Printf("               total: %d\n", stats.total)
+		fmt.Printf("                  ok: %d\n", stats.ok)
+		fmt.Printf("             ignored: %d\n", stats.ignored)
+		fmt.Printf("             newfile: %d\n", stats.newfile)
+		fmt.Printf("            outdated: %d\n", stats.outdated)
+		fmt.Printf("          timechange: %d\n", stats.timechange)
+		fmt.Printf("          inprogress: %d\n", stats.inprogress)
+		fmt.Printf("             corrupt: %d\n", stats.corrupt)
+		fmt.Printf("       errorsOpening: %d\n", stats.errorsOpening)
+		fmt.Printf("  errorsWritingXattr: %d\n", stats.errorsWritingXattr)
+		fmt.Printf("    errorsNotRegular: %d\n", stats.errorsNotRegular)
+		fmt.Printf("         errorsOther: %d\n", stats.errorsOther)
+		fmt.Printf("")
+		fmt.Printf("            duration: %s\n", duration.Truncate(time.Millisecond))
+		fmt.Printf("")
 	}
 
 	if stats.corrupt > 0 {

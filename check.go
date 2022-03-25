@@ -108,6 +108,17 @@ func printComparison(stored fileAttr, actual fileAttr) {
 }
 
 func checkFile(fn string) {
+
+	match := args.ignoreRegex.FindStringIndex(fn)
+	if ( match != nil ){
+		if ( !args.qq ){
+			fmt.Printf("<ignore> %s\n", fn)
+		}
+		stats.ignored++
+		return;
+	}		
+	
+
 	stats.total++
 	f, err := os.Open(fn)
 	if err != nil {
