@@ -61,6 +61,10 @@ OPTIONS
        -remove     remove cshatag's xattrs from FILE
        -q          quiet mode - don't report <ok> files
        -qq         quiet2 mode - only report <corrupt> files and errors
+       -new-only   update new files only, skip files with existing hashes
+       -ignore <pattern>  
+                   regular expression pattern for files to ignore. 
+       -stats      report statistics upon completion
 
 EXAMPLES
        Check  all regular files in the file tree below the current working di‐
@@ -80,7 +84,8 @@ RETURN VALUE
        4 Extended attributes could not be written to one or more files
        5 At least one file was found to be corrupt
        6 More than one type of error occurred
-
+     130 Program interrupted with SIGTERM (CTRL+C)
+ 
 COMPATIBILITY
        cshatag  writes  the  user.shatag.ts field with full integer nanosecond
        precision, while python uses a double for the whole mtime and loses the

@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"time"
+	"os/signal"
+	"syscall"
 )
 
 // GitVersion is set by the Makefile and contains the version string.
@@ -26,6 +28,7 @@ var stats struct {
 	ok                 int
 	ignored            int
 	skipped            int
+	startTime		   time.Time
 }
 
 var args struct {
@@ -79,8 +82,35 @@ func processArg(fn string) {
 	}
 }
 
+func printStats() {
+
+	duration := time.Now().Sub(stats.startTime)
+
+	if args.stats {
+		fmt.Println("")
+		fmt.Println("")
+		fmt.Printf("stats:\n")
+		fmt.Printf("               total: %d\n", stats.total)
+		fmt.Printf("                  ok: %d\n", stats.ok)
+		fmt.Printf("             ignored: %d\n", stats.ignored)
+		fmt.Printf("             skipped: %d\n", stats.skipped)
+		fmt.Printf("             newfile: %d\n", stats.newfile)
+		fmt.Printf("            outdated: %d\n", stats.outdated)
+		fmt.Printf("          timechange: %d\n", stats.timechange)
+		fmt.Printf("          inprogress: %d\n", stats.inprogress)
+		fmt.Printf("             corrupt: %d\n", stats.corrupt)
+		fmt.Printf("       errorsOpening: %d\n", stats.errorsOpening)
+		fmt.Printf("  errorsWritingXattr: %d\n", stats.errorsWritingXattr)
+		fmt.Printf("    errorsNotRegular: %d\n", stats.errorsNotRegular)
+		fmt.Printf("         errorsOther: %d\n", stats.errorsOther)
+		fmt.Printf("")
+		fmt.Printf("            duration: %s\n", duration.Truncate(time.Millisecond))
+		fmt.Printf("")
+	}
+}
+
 func main() {
-	start := time.Now()
+	stats.startTime = time.Now()
 
 	const myname = "cshatag"
 
@@ -125,33 +155,22 @@ func main() {
 		args.ignoreRegex = ignoreRegex
 	}
 
+	if args.stats {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		go func() {
+			<-c
+			fmt.Println("\n\nINTERRUPTED");
+			printStats()
+			os.Exit(130)
+		}()
+	}
+
 	for _, fn := range flag.Args() {
 		processArg(fn)
 	}
 
-	duration := time.Now().Sub(start)
-
-	if args.stats {
-		fmt.Println("")
-		fmt.Println("")
-		fmt.Printf("%s stats:\n", myname)
-		fmt.Printf("               total: %d\n", stats.total)
-		fmt.Printf("                  ok: %d\n", stats.ok)
-		fmt.Printf("             ignored: %d\n", stats.ignored)
-		fmt.Printf("             skipped: %d\n", stats.skipped)
-		fmt.Printf("             newfile: %d\n", stats.newfile)
-		fmt.Printf("            outdated: %d\n", stats.outdated)
-		fmt.Printf("          timechange: %d\n", stats.timechange)
-		fmt.Printf("          inprogress: %d\n", stats.inprogress)
-		fmt.Printf("             corrupt: %d\n", stats.corrupt)
-		fmt.Printf("       errorsOpening: %d\n", stats.errorsOpening)
-		fmt.Printf("  errorsWritingXattr: %d\n", stats.errorsWritingXattr)
-		fmt.Printf("    errorsNotRegular: %d\n", stats.errorsNotRegular)
-		fmt.Printf("         errorsOther: %d\n", stats.errorsOther)
-		fmt.Printf("")
-		fmt.Printf("            duration: %s\n", duration.Truncate(time.Millisecond))
-		fmt.Printf("")
-	}
+	printStats()
 
 	if stats.corrupt > 0 {
 		os.Exit(5)
