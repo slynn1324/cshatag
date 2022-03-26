@@ -25,6 +25,7 @@ var stats struct {
 	newfile            int
 	ok                 int
 	ignored            int
+	skipped            int
 }
 
 var args struct {
@@ -36,6 +37,7 @@ var args struct {
 	stats     bool
 	ignore    string
 	ignoreRegex *regexp.Regexp
+	newOnly   bool
 }
 
 // walkFn is used when `cshatag` is called with the `--recursive` option. It is the function called
@@ -94,6 +96,7 @@ func main() {
 	flag.BoolVar(&args.dryrun, "dry-run", false, "don't make any changes")
 	flag.BoolVar(&args.stats, "stats", false, "report statistics at the end")
 	flag.StringVar(&args.ignore, "ignore", "", "Ignore regex pattern.  All files where the fully qualified file path match the ignore expression will be ignored.")
+	flag.BoolVar(&args.newOnly, "new-only", false, "Update new files only, skip files with existing sha256 attributes")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "%s %s\n", myname, GitVersion)
@@ -135,6 +138,7 @@ func main() {
 		fmt.Printf("               total: %d\n", stats.total)
 		fmt.Printf("                  ok: %d\n", stats.ok)
 		fmt.Printf("             ignored: %d\n", stats.ignored)
+		fmt.Printf("             skipped: %d\n", stats.skipped)
 		fmt.Printf("             newfile: %d\n", stats.newfile)
 		fmt.Printf("            outdated: %d\n", stats.outdated)
 		fmt.Printf("          timechange: %d\n", stats.timechange)

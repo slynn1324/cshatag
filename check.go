@@ -109,6 +109,8 @@ func printComparison(stored fileAttr, actual fileAttr) {
 
 func checkFile(fn string) {
 
+	stats.total++
+
 	if args.ignoreRegex != nil {
 		match := args.ignoreRegex.FindStringIndex(fn)
 		if ( match != nil ){
@@ -121,7 +123,7 @@ func checkFile(fn string) {
 	}
 	
 
-	stats.total++
+	
 	f, err := os.Open(fn)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
@@ -144,6 +146,15 @@ func checkFile(fn string) {
 	}
 
 	stored, _ := getStoredAttr(f)
+
+	if args.newOnly {
+		if ( len(stored.sha256) > 0 && stored.ts.s > 0 ) {
+			fmt.Printf("<skipped> %s\n", fn)
+			stats.skipped++
+			return;
+		}
+	}
+
 	actual, err := getActualAttr(f)
 	if err == syscall.EINPROGRESS {
 		if !args.qq {
